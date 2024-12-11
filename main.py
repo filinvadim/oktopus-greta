@@ -157,12 +157,7 @@ if __name__ == '__main__':
         chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
         login(chrome_driver, login_email, login_password)
-
-        if now.weekday() != 4:
-            prepare_to_book(chrome_driver, classHourDefault)
-        else:
-            prepare_to_book(chrome_driver, '20:00') # friday
-
+        prepare_to_book(chrome_driver, '20:00')
         while book(chrome_driver) is False:
             time.sleep(1/10)
 
