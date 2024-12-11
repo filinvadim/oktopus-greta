@@ -124,6 +124,12 @@ if __name__ == '__main__':
     classHourDefault = "20:00"
     classHourSaturday = "14:00"
 
+    chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    login(chrome_driver, login_email, login_password)
+    prepare_to_book(chrome_driver, classHourDefault)
+    book(chrome_driver)
+    chrome_driver.quit()
+
     while True:
         now = datetime.datetime.now()
 
