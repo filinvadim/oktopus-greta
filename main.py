@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import datetime
 
 from selenium import webdriver
@@ -134,7 +135,8 @@ if __name__ == '__main__':
             continue
 
         time_to_29 = now.replace(minute=29, second=0, microsecond=0)
-        if now > time_to_29:
+        time_to_31 = now.replace(minute=29, second=0, microsecond=0)
+        if time_to_29 > now >= time_to_31:
             print("NOT IN A BOOKING MINUTES")
             time_to_29 = (now + datetime.timedelta(hours=1)).replace(minute=29, second=0, microsecond=0)
             seconds_to_29 = (time_to_29 - now).total_seconds()
