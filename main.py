@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import datetime
+import time
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -9,8 +10,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
-
+from getpass import getpass
 
 def login(driver, email, password):
     try:
@@ -31,13 +31,13 @@ def login(driver, email, password):
         )
 
         login_input.clear()
-        login_input.send_keys(email)  # Замените 'your_login' на реальный логин
+        login_input.send_keys(email)
 
         password_input = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, 'input[name="Password"]'))
         )
         password_input.clear()
-        password_input.send_keys(password)  # Замените 'your_password' на реальный пароль
+        password_input.send_keys(password)
 
         login_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, '.baf-button.cp-login-btn-login'))
@@ -59,11 +59,11 @@ def prepare_to_book(driver, class_time):
                 (By.XPATH, path))
         )
 
-        # Прокрутить до элемента
         driver.execute_script("arguments[0].scrollIntoView(true);", later_classes)
 
         if not later_classes.is_displayed():
             raise Exception("later classes aren't visible")
+        time.sleep(1)
     except Exception as e:
         print(f"Prepare for booking error occurred: {e}")
 
@@ -79,12 +79,15 @@ def book(driver):
         elements = driver.find_elements(By.XPATH,path)
         print(f"found {len(elements)} classes")
 
-        for index, element in enumerate(elements):
+        for element in elements:
+
             if element.text != 'Book now' and element.text != 'Cancel booking':
                 print(f"Skip not ready class {element.text}")
                 continue
+
             try:
                 driver.execute_script("arguments[0].scrollIntoView(true);", element)
+
                 driver.execute_script("arguments[0].click();", element)
                 print(f"Successful click to book {element.text}")
             except Exception as e:
@@ -93,7 +96,6 @@ def book(driver):
 
         elements = driver.find_elements(By.XPATH, path)
         for element in elements:
-            print(f"Class status {element.text}")
             if element.text == 'Cancel booking':
                 return True
         return False
@@ -102,11 +104,11 @@ def book(driver):
         print(f"Element recreated: {e}")
         return False
 
+# /home/vadim/.local/bin/pyinstaller  main.py --onefile
 if __name__ == '__main__':
     print('Enter your login email:')
     login_email = input()
-    print('Enter your password:')
-    login_password = input()
+    login_password = getpass()
 
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
@@ -115,14 +117,12 @@ if __name__ == '__main__':
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-infobars")
 
-    bookingWeekdays = [1, 3, 4, 6]
+    bookingWeekdays = [1, 3, 4]
     minutes_59 = 3540
 
     startReservationHourDefault = 18 # minus 22 hours from the class
-    startReservationHourSaturday = 12 # minus 22 hours from the class
 
     classHourDefault = "20:00"
-    classHourSaturday = "14:00"
 
     chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     login(chrome_driver, login_email, login_password)
@@ -150,9 +150,7 @@ if __name__ == '__main__':
             continue
 
         # not friday
-        if (now.weekday() != 4 and now.time().hour != startReservationHourDefault) or (
-                now.weekday() == 4 and now.time().hour != startReservationHourSaturday
-        ):
+        if now.weekday() != 4 and now.time().hour != startReservationHourDefault:
             print("NOT IN A BOOKING HOUR")
             time.sleep(minutes_59)
             continue
@@ -164,7 +162,7 @@ if __name__ == '__main__':
         if now.weekday() != 4:
             prepare_to_book(chrome_driver, classHourDefault)
         else:
-            prepare_to_book(chrome_driver, classHourSaturday) # friday
+            prepare_to_book(chrome_driver, '20:00') # friday
 
         while book(chrome_driver) is False:
             time.sleep(1/10)
