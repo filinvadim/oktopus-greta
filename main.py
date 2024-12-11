@@ -80,9 +80,8 @@ def book(driver):
         print(f"found {len(elements)} classes")
 
         for element in elements:
-
-            if element.text != 'Book now' and element.text != 'Cancel booking':
-                print(f"Skip not ready class {element.text}")
+            if element.text != 'Book now':
+                print(f"Skip not ready for booking class {element.text}")
                 continue
 
             try:
