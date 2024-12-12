@@ -6,7 +6,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import StaleElementReferenceException
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -44,8 +43,8 @@ def login(driver, email, password):
         )
 
         login_button.click()
-    except Exception as e:
-        print(f"Login error occurred: {e}")
+    except Exception as eex:
+        print(f"Login error occurred: {eex}")
 
 def prepare_to_book(driver, class_time):
     try:
@@ -64,44 +63,36 @@ def prepare_to_book(driver, class_time):
         if not later_classes.is_displayed():
             raise Exception("later classes aren't visible")
         time.sleep(1)
-    except Exception as e:
-        print(f"Prepare for booking error occurred: {e}")
+    except Exception as exn:
+        print(f"Prepare for booking error occurred: {exn}")
 
 def book(driver):
-    try:
-        path = '//div[contains(@class, "calendar-item-name") and contains(., "DUMBBELL CROSSFIT WORKOUT")]/ancestor::*[contains(@class, "calendar-view-item")]//div[contains(@class, "class-item-actions")]//div[contains(@class, "cp-btn-classes-action")]'
-        bookable_button = WebDriverWait(driver, 30).until(
-                EC.element_to_be_clickable((By.XPATH, path))
-            )
-        if not bookable_button.is_displayed():
-            raise Exception("bookable buttons aren't visible")
-
-        elements = driver.find_elements(By.XPATH,path)
-        print(f"found {len(elements)} classes")
-
-        for element in elements:
-            if element.text != 'Book now':
-                print(f"Skip not ready for booking class {element.text}")
-                continue
-
-            try:
-                driver.execute_script("arguments[0].scrollIntoView(true);", element)
-
-                driver.execute_script("arguments[0].click();", element)
-                print(f"Successful click to book {element.text}")
-            except Exception as e:
-                print(f"Error: {e}")
-                return False
-
-        elements = driver.find_elements(By.XPATH, path)
-        for element in elements:
-            if element.text == 'Cancel booking':
-                return True
+    path = '//div[contains(@class, "calendar-item-name") and contains(., "DUMBBELL CROSSFIT WORKOUT")]/ancestor::*[contains(@class, "calendar-view-item")]//div[contains(@class, "class-item-actions")]//div[contains(@class, "cp-btn-classes-action")]'
+    bookable_button = WebDriverWait(driver, 30).until(
+            EC.element_to_be_clickable((By.XPATH, path))
+        )
+    if not bookable_button.is_displayed():
+        print("bookable buttons aren't visible")
         return False
 
-    except StaleElementReferenceException as e:
-        print(f"Element recreated: {e}")
-        return False
+    elements = driver.find_elements(By.XPATH,path)
+    print(f"found {len(elements)} classes")
+
+    for element in elements:
+        if element.text != 'Book now':
+            print(f"Skip not ready for booking class {element.text}")
+            continue
+        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+
+        driver.execute_script("arguments[0].click();", element)
+        print(f"Successful click to book {element.text}")
+
+    elements = driver.find_elements(By.XPATH, path)
+    for element in elements:
+        if element.text == 'Cancel booking':
+            return True
+    return False
+
 
 # /home/vadim/.local/bin/pyinstaller  main.py --onefile
 if __name__ == '__main__':
@@ -117,10 +108,8 @@ if __name__ == '__main__':
     chrome_options.add_argument("--disable-infobars")
 
     bookingWeekdays = [1, 3, 4]
-    minutes_59 = 3540
-
+    minutes_29 = 1740
     startReservationHourDefault = 18 # minus 22 hours from the class
-
     classHourDefault = "20:00"
 
     chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
@@ -133,32 +122,39 @@ if __name__ == '__main__':
         now = datetime.datetime.now()
 
         if now.weekday() not in bookingWeekdays:
-            print("NOT IN A BOOKING WEEKDAY")
+            print("NOT IN A BOOKING WEEKDAY: ", now.weekday()+1)
             midnight = (now + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             seconds_to_midnight = (midnight - now).total_seconds()
             time.sleep(seconds_to_midnight)
             continue
 
         time_to_29 = now.replace(minute=29, second=0, microsecond=0)
-        time_to_31 = now.replace(minute=29, second=0, microsecond=0)
-        if time_to_29 > now >= time_to_31:
-            print("NOT IN A BOOKING MINUTES")
+        time_to_31 = now.replace(minute=31, second=0, microsecond=0)
+
+        if now.time().hour != startReservationHourDefault:
+            print("NOT IN A BOOKING HOUR: ", now.time().hour)
+            time.sleep(minutes_29)
+            continue
+
+        if now.minute < time_to_29.minute and now.minute >= time_to_31.minute:
+            print("NOT IN A BOOKING MINUTES: ", now.minute)
             time_to_29 = (now + datetime.timedelta(hours=1)).replace(minute=29, second=0, microsecond=0)
             seconds_to_29 = (time_to_29 - now).total_seconds()
             time.sleep(seconds_to_29)
             continue
 
-        if now.time().hour != startReservationHourDefault:
-            print("NOT IN A BOOKING HOUR")
-            time.sleep(minutes_59)
-            continue
-
         chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
         login(chrome_driver, login_email, login_password)
         prepare_to_book(chrome_driver, '20:00')
-        while book(chrome_driver) is False:
-            time.sleep(1/10)
+
+        while True:
+            try:
+                success = book(chrome_driver)
+                if success:
+                    break
+                time.sleep(1/10)
+            except Exception as e:
+                print(f"Booking loop: {e}")
 
         chrome_driver.quit()
 
