@@ -63,3 +63,11 @@ Before running the script, make sure you have the following:
 | **requirements.txt not found**  | The file is missing.                     | Make sure the ZIP archive was extracted properly. |
 | **my_script.py not found**      | The file is missing.                     | Make sure the ZIP archive was extracted properly. |
 
+## 🐞 **5. Login**
+![Login](./image/login.png)
+    - Enter your Oktopus application email (your typing will be visible)
+    - Enter your Oktopus application password (your typing WON'T be visible)
+
+## 🐞 **6. App is running**
+    Application will run in the infinite loop and book all DUMBELL CROSSFIT classes at 8:30 pm. 
+    No further actions needed.
