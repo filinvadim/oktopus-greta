@@ -148,8 +148,7 @@ if __name__ == '__main__':
             time.sleep(seconds_to_29)
             continue
 
-        # not friday
-        if now.weekday() != 4 and now.time().hour != startReservationHourDefault:
+        if now.time().hour != startReservationHourDefault:
             print("NOT IN A BOOKING HOUR")
             time.sleep(minutes_59)
             continue
