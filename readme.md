@@ -13,6 +13,8 @@ Before running the script, make sure you have the following:
 1. **A MacBook** with macOS (any version like Monterey, Ventura, etc.).
 2. **Terminal Application** — This is pre-installed on all MacBooks.  
    📍 **How to open Terminal?**  
+![Terminal](./image/terminal.png)
+
    - Press **Cmd + Space** to open **Spotlight Search**, type **"Terminal"**, and press **Enter**.  
    - Or, go to **Applications → Utilities → Terminal**.  
 
