@@ -34,6 +34,7 @@ else
 fi
 
 # Ensure the active developer path is set correctly
+echo "Enter your laptop password"
 sudo xcode-select --switch /Library/Developer/CommandLineTools
 
 # === STEP 2: CHECK FOR PYTHON 3 AVAILABILITY ===
