@@ -33,10 +33,6 @@ else
     echo "✅ Xcode Command Line Tools are already installed."
 fi
 
-# Ensure the active developer path is set correctly
-echo "Enter your laptop password"
-sudo xcode-select --switch /Library/Developer/CommandLineTools
-
 # === STEP 2: CHECK FOR PYTHON 3 AVAILABILITY ===
 if ! command -v python3 &> /dev/null
 then
