@@ -61,7 +61,7 @@ Before running the script, make sure you have the following:
 | **python3: command not found**  | Python 3 is not installed.               | Install Python 3 via Homebrew: `brew install python`. |
 | **pip3: command not found**     | pip is not installed.                    | Run `python3 -m ensurepip && python3 -m pip install --upgrade pip`. |
 | **requirements.txt not found**  | The file is missing.                     | Make sure the ZIP archive was extracted properly. |
-| **my_script.py not found**      | The file is missing.                     | Make sure the ZIP archive was extracted properly. |
+| **main.py not found**      | The file is missing.                     | Make sure the ZIP archive was extracted properly. |
 
 ## 🐞 **5. Login**
 ![Login](./image/login.png)
