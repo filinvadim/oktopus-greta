@@ -137,11 +137,9 @@ if __name__ == '__main__':
             class_name = cls.name
 
             if now.weekday() not in booking_weekdays:
-                print("NOT IN A BOOKING WEEKDAY: ", now.weekday()+1, class_name)
                 continue
 
-            if now.time().hour < reservation_hour:
-                print("HOUR LESS THAN BOOKING HOUR: ", now.time().hour, class_name)
+            if now.time().hour != reservation_hour:
                 continue
 
             chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
