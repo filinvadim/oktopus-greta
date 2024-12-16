@@ -154,7 +154,7 @@ if __name__ == '__main__':
             prepare_to_book(chrome_driver, class_hour)
 
             attempt = 0
-            while attempt != 10:
+            while attempt != 100:
                 success = book(chrome_driver, class_name)
                 if success:
                     break
