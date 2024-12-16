@@ -121,14 +121,17 @@ if __name__ == '__main__':
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-infobars")
 
-
-    chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    chrome_manager = ChromeDriverManager().install()
+    chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
     login(chrome_driver, login_email, login_password)
     prepare_to_book(chrome_driver, CLASSES[0].class_hour)
     book(chrome_driver, CLASSES[0].name)
     chrome_driver.quit()
 
+    all_not_in_time = True
+
     while True:
+
         for cls in CLASSES:
             now = datetime.datetime.now()
             booking_weekdays = cls.weekdays
@@ -137,12 +140,16 @@ if __name__ == '__main__':
             class_name = cls.name
 
             if now.weekday() not in booking_weekdays:
+                print(f"Not in a week day {now.weekday()+1} {class_name}")
                 continue
 
             if now.time().hour != reservation_hour:
+                print(f"Not in a week hour {now.time().hour} {class_name}")
                 continue
 
-            chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+            all_not_in_time = False
+
+            chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
             login(chrome_driver, login_email, login_password)
             prepare_to_book(chrome_driver, class_hour)
 
@@ -156,4 +163,8 @@ if __name__ == '__main__':
                 attempt += 1
 
             chrome_driver.quit()
+
+        if all_not_in_time:
+            time.sleep(1740) # 29 minutes
+        all_not_in_time = True
 
