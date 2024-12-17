@@ -18,12 +18,16 @@ CANCEL_BOOKING = 'cancel booking'
 
 class GroupClass:
     name = ''
-    class_hour = ''
+    class_hour_str = ''
+    class_minutes = 0
+    class_hour = 0
     reservation_hour = 0
     weekdays = []
-    def __init__(self, name, hour, weekdays):
+    def __init__(self, name, hour, minutes, weekdays):
         self.name = name
-        self.class_hour = str(hour)+':00'
+        self.class_hour_str = str(hour)+':00'
+        self.class_hour = hour
+        self.class_minutes = minutes
         self.reservation_hour = hour - 2
         self.weekdays = weekdays
 
@@ -124,19 +128,21 @@ if __name__ == '__main__':
     chrome_manager = ChromeDriverManager().install()
     chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
     login(chrome_driver, login_email, login_password)
-    prepare_to_book(chrome_driver, CLASSES[0].class_hour)
+    prepare_to_book(chrome_driver, CLASSES[0].class_hour_str)
     book(chrome_driver, CLASSES[0].name)
     chrome_driver.quit()
 
     all_not_in_time = True
 
     while True:
+        now = datetime.datetime.now()
 
         for cls in CLASSES:
-            now = datetime.datetime.now()
             booking_weekdays = cls.weekdays
             reservation_hour = cls.reservation_hour
+            class_hour_str = cls.class_hour_str
             class_hour = cls.class_hour
+            class_minutes = cls.class_minutes
             class_name = cls.name
 
             if now.weekday() not in booking_weekdays:
@@ -144,23 +150,23 @@ if __name__ == '__main__':
                 continue
 
             if now.time().hour != reservation_hour:
-                print(f"Not in a week hour {now.time().hour} {class_name}")
+                print(f"Not in a day hour {now.time()} {class_name}")
                 continue
 
             all_not_in_time = False
 
             chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
             login(chrome_driver, login_email, login_password)
-            prepare_to_book(chrome_driver, class_hour)
+            prepare_to_book(chrome_driver, class_hour_str)
 
-            attempt = 0
-            while attempt != 100:
+            now = datetime.datetime.now()
+
+            while class_minutes-1 <= now.time().minute < class_minutes+1:
                 success = book(chrome_driver, class_name)
                 if success:
+                    time.sleep(5)
                     break
-
                 time.sleep(1/10)
-                attempt += 1
 
             chrome_driver.quit()
 
