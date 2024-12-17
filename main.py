@@ -33,8 +33,8 @@ class GroupClass:
 
 
 CLASSES = [
-    GroupClass('DUMBBELL CROSSFIT WORKOUT', 20, [1, 3, 6]),
-    GroupClass('HIIT', 14, [4])
+    GroupClass('DUMBBELL CROSSFIT WORKOUT', 20, 30,[1, 3, 6]),
+    GroupClass('HIIT', 14, 30, [4])
 ]
 
 def login(driver, email, password):
