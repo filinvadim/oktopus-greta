@@ -153,15 +153,18 @@ if __name__ == '__main__':
                 print(f"Not in a day hour {now.time()} {class_name}")
                 continue
 
-            all_not_in_time = False
+            if not (class_minutes-1 <= now.time().minute < class_minutes+1):
+                print(f"Not in a minutes {now.time()} {class_name}")
+                continue
 
+            all_not_in_time = False
             chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
             login(chrome_driver, login_email, login_password)
             prepare_to_book(chrome_driver, class_hour_str)
 
             now = datetime.datetime.now()
 
-            while class_minutes-1 <= now.time().minute < class_minutes+1:
+            while now.time().minute < class_minutes+1:
                 success = book(chrome_driver, class_name)
                 if success:
                     time.sleep(5)
