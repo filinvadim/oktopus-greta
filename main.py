@@ -155,7 +155,7 @@ if __name__ == '__main__':
             if not (class_minutes-1 <= now.time().minute < class_minutes+1):
                 print(f"Not in a minutes {now.time()} {class_name}")
                 all_not_in_time = False
-                time.sleep(1)
+                time.sleep(29)
                 continue
 
             all_not_in_time = False
