@@ -12,7 +12,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from getpass import getpass
 
 PORTAL_ADDRESS = 'https://oktopus.perfectgym.com/clientportal2/#/Login'
-SLEEP_STEP_SECONDS = 1740  # 29 mins
 BOOK_NOW = 'book now'
 CANCEL_BOOKING = 'cancel booking'
 
@@ -43,7 +42,6 @@ def login(driver, email, password):
     WebDriverWait(driver, 30).until(
         EC.invisibility_of_element_located((By.CLASS_NAME, 'baf-load-mask'))
     )
-    time.sleep(3)
 
     deny_all_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
@@ -84,7 +82,6 @@ def prepare_to_book(driver, class_time):
 
     if not later_classes.is_displayed():
         raise Exception("later classes aren't visible")
-    time.sleep(1)
 
 def book(driver, name):
     path = f'//div[contains(@class, "calendar-item-name") and contains(., "{name}")]/ancestor::*[contains(@class, "calendar-view-item")]//div[contains(@class, "class-item-actions")]//div[contains(@class, "cp-btn-classes-action")]'
@@ -132,7 +129,9 @@ if __name__ == '__main__':
     book(chrome_driver, CLASSES[0].name)
     chrome_driver.quit()
 
-    all_not_in_time = True
+    all_not_in_day = True
+    all_not_in_hour = True
+    all_not_in_minute = True
 
     while True:
         now = datetime.datetime.now()
@@ -148,33 +147,41 @@ if __name__ == '__main__':
                 print(f"Not in a week day {now.weekday()+1} {class_name}")
                 continue
 
+            all_not_in_day = False
+
             if now.time().hour != reservation_hour:
                 print(f"Not in a day hour {now.time()} {class_name}")
                 continue
 
+            all_not_in_hour = False
+
             if not (class_minutes-1 <= now.time().minute < class_minutes+1):
                 print(f"Not in a minutes {now.time()} {class_name}")
-                all_not_in_time = False
-                time.sleep(29)
                 continue
 
-            all_not_in_time = False
+            all_not_in_minute = False
+
             chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
             login(chrome_driver, login_email, login_password)
-            prepare_to_book(chrome_driver, class_hour_str)
 
-            now = datetime.datetime.now()
-
-            while now.time().minute < class_minutes+1:
+            while datetime.datetime.now().time().minute < class_minutes+1:
+                chrome_driver.refresh()
+                prepare_to_book(chrome_driver, class_hour_str)
                 success = book(chrome_driver, class_name)
                 if success:
                     time.sleep(5)
                     break
-                time.sleep(1/10)
 
             chrome_driver.quit()
 
-        if all_not_in_time:
+        if all_not_in_day:
+            time.sleep(39600) # 11 hours
+        if all_not_in_hour:
             time.sleep(1740) # 29 minutes
-        all_not_in_time = True
+        if all_not_in_minute:
+            time.sleep(29)
+
+        all_not_in_day = True
+        all_not_in_hour = True
+        all_not_in_minute = True
 
