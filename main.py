@@ -141,7 +141,6 @@ if __name__ == '__main__':
             booking_weekdays = cls.weekdays
             reservation_hour = cls.reservation_hour
             class_hour_str = cls.class_hour_str
-            class_hour = cls.class_hour
             class_minutes = cls.class_minutes
             class_name = cls.name
 
@@ -155,6 +154,8 @@ if __name__ == '__main__':
 
             if not (class_minutes-1 <= now.time().minute < class_minutes+1):
                 print(f"Not in a minutes {now.time()} {class_name}")
+                all_not_in_time = False
+                time.sleep(1)
                 continue
 
             all_not_in_time = False
