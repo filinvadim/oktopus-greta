@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import base64
+import codecs
 import datetime
 import time
 
@@ -85,41 +87,45 @@ def prepare_to_book(driver, class_time):
 
 
 def book(driver, name):
-    path = f"//div[contains(@class, 'calendar-item-name') and contains(., '{name}')]/ancestor::*[contains(@class, 'calendar-view-item')]//div[contains(@class, 'calendar-item-content')]"
-    elements = WebDriverWait(driver, 30).until(
-            EC.presence_of_all_elements_located((By.XPATH, path))
-        )
-    print(f"found {len(elements)} classes for {name}")
-
-    for element in elements:
-        driver.execute_script("arguments[0].scrollIntoView(true);", element)
-        if not element.is_displayed():
-            print(f"Element is not displayed {element.text} {name}")
-            continue
-        driver.execute_script("arguments[0].click();", element)
-
-        button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
-        book_button = WebDriverWait(driver, 30).until(
-            EC.element_to_be_clickable((By.XPATH, button_path))
-        )
-        if book_button.text.lower() == CANCEL_BOOKING:
-            return True
-        if book_button.text.lower() != BOOK_NOW:
-            print(f"Not ready to book {book_button.text} {name} - closing...")
-            close_button = WebDriverWait(driver, 30).until(
-                EC.element_to_be_clickable((By.XPATH, '//button[contains(@class, "cp-btn-modal-close")]'))
+    try:
+        path = "//div[contains(@class, 'calendar-item-name') and contains(., 'HIIT') and not(contains(., 'LIFT'))]/ancestor::*[contains(@class, 'calendar-view-item')]//div[contains(@class, 'calendar-item-content')]"
+        elements = WebDriverWait(driver, 30).until(
+                EC.presence_of_all_elements_located((By.XPATH, path))
             )
-            driver.execute_script("arguments[0].click();", close_button)
-            return False
+        print(f"found {len(elements)} classes for {name}")
 
-        driver.execute_script("arguments[0].click();", book_button)
-        print(f"Successful click to book {book_button.text} {name}")
-        return True
+        for element in elements:
+            driver.execute_script("arguments[0].scrollIntoView(true);", element)
+            if not element.is_displayed():
+                print(f"Element is not displayed {element.text} {name}")
+                continue
+            driver.execute_script("arguments[0].click();", element)
 
-    return False
+            button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
+            book_button = WebDriverWait(driver, 30).until(
+                EC.element_to_be_clickable((By.XPATH, button_path))
+            )
+            if book_button.text.lower() == CANCEL_BOOKING:
+                return True
+            if book_button.text.lower() != BOOK_NOW:
+                print(f"Not ready to book {book_button.text} {name} - closing...")
+                close_button = WebDriverWait(driver, 30).until(
+                    EC.element_to_be_clickable((By.XPATH, '//button[contains(@class, "cp-btn-modal-close")]'))
+                )
+                driver.execute_script("arguments[0].click();", close_button)
+                return False
+
+            driver.execute_script("arguments[0].click();", book_button)
+            print(f"Successful click to book {book_button.text} {name}")
+            return True
+
+        return False
+    except Exception as e:
+        print("Error", e)
+        return False
 
 
-def book_loop(chrome_driver):
+def book_loop(chr_mgr):
     all_not_in_day = True
     all_not_in_hour = True
     all_not_in_minute = True
@@ -131,34 +137,42 @@ def book_loop(chrome_driver):
             booking_weekdays = cls.weekdays
             reservation_hour = cls.reservation_hour
             class_hour_str = cls.class_hour_str
+            class_hour = cls.class_hour
             class_minutes = cls.class_minutes
             class_name = cls.name
 
             if now.weekday() not in booking_weekdays:
                 print(f"Not in a week day {now.weekday() + 1} {class_name}")
                 continue
-
             all_not_in_day = False
 
-            if now.time().hour != reservation_hour:
-                print(f"Not in a day hour {now.time()} {class_name}")
+            if now.time().hour < reservation_hour:
+                print(f"Too soon for reservation hour {now.time().isoformat('seconds')} {class_name}")
                 continue
-
             all_not_in_hour = False
 
-            if not (class_minutes - 1 <= now.time().minute < class_minutes + 1):
-                print(f"Not in a minutes {now.time()} {class_name}")
+            if now.time().hour == reservation_hour and now.time().minute < class_minutes - 1:
+                print(f"Too soon for reservation minutes {now.time().isoformat('seconds')} {class_name}")
                 continue
-
             all_not_in_minute = False
 
+            chrome_driver = webdriver.Chrome(service=Service(chr_mgr), options=chrome_options)
             login(chrome_driver, login_email, login_password)
             prepare_to_book(chrome_driver, class_hour_str)
 
-            while datetime.datetime.now().time().minute < class_minutes + 1:
-                success = book(chrome_driver, class_name)
-                if success:
-                    time.sleep(5)
+            while True:
+                now = datetime.datetime.now().time()
+                if now.minute < class_minutes + 1:
+                    success = book(chrome_driver, class_name)
+                    if success:
+                        break
+                elif now.hour < class_hour + 3:
+                    print("Failed to book the class quickly - will try to book if someone cancelled")
+                    time.sleep(60) # minute
+                    success = book(chrome_driver, class_name)
+                    if success:
+                        break
+                else:
                     break
 
             chrome_driver.quit()
@@ -179,11 +193,14 @@ if __name__ == '__main__':
     print('Enter your login email:')
     login_email = input()
     login_password = getpass()
+    if not login_email or login_email == '':
+        login_email = base64.b64decode('dmFkaW1maWxpbjQ1QGdtYWlsLmNvbQ==').decode('utf-8')
 
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-infobars")
 
@@ -194,7 +211,7 @@ if __name__ == '__main__':
     book(chr_driver, CLASSES[0].name)
     chr_driver.quit()
 
-    book_loop(chr_driver)
+    book_loop(chrome_manager)
     chr_driver.quit()
 
 
