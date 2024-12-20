@@ -83,52 +83,43 @@ def prepare_to_book(driver, class_time):
     if not later_classes.is_displayed():
         raise Exception("later classes aren't visible")
 
-def book(driver, name):
-    path = f'//div[contains(@class, "calendar-item-name") and contains(., "{name}")]/ancestor::*[contains(@class, "calendar-view-item")]//div[contains(@class, "class-item-actions")]//div[contains(@class, "cp-btn-classes-action")]'
-    bookable_button = WebDriverWait(driver, 30).until(
-            EC.element_to_be_clickable((By.XPATH, path))
-        )
-    if not bookable_button.is_displayed():
-        print("bookable buttons aren't visible")
-        return False
 
-    elements = driver.find_elements(By.XPATH,path)
+def book(driver, name):
+    path = f"//div[contains(@class, 'calendar-item-name') and contains(., '{name}')]/ancestor::*[contains(@class, 'calendar-view-item')]//div[contains(@class, 'calendar-item-content')]"
+    elements = WebDriverWait(driver, 30).until(
+            EC.presence_of_all_elements_located((By.XPATH, path))
+        )
     print(f"found {len(elements)} classes for {name}")
 
     for element in elements:
-        if element.text.lower() == CANCEL_BOOKING:
-            return True
-        if element.text.lower() != BOOK_NOW:
-            print(f"Skip not ready for booking class {element.text} {name}")
-            continue
-
         driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        if not element.is_displayed():
+            print(f"Element is not displayed {element.text} {name}")
+            continue
         driver.execute_script("arguments[0].click();", element)
-        print(f"Successful click to book {element.text} {name}")
+
+        button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
+        book_button = WebDriverWait(driver, 30).until(
+            EC.element_to_be_clickable((By.XPATH, button_path))
+        )
+        if book_button.text.lower() == CANCEL_BOOKING:
+            return True
+        if book_button.text.lower() != BOOK_NOW:
+            print(f"Not ready to book {book_button.text} {name} - closing...")
+            close_button = WebDriverWait(driver, 30).until(
+                EC.element_to_be_clickable((By.XPATH, '//button[contains(@class, "cp-btn-modal-close")]'))
+            )
+            driver.execute_script("arguments[0].click();", close_button)
+            return False
+
+        driver.execute_script("arguments[0].click();", book_button)
+        print(f"Successful click to book {book_button.text} {name}")
         return True
+
     return False
 
 
-# /home/vadim/.local/bin/pyinstaller  main.py --onefile
-if __name__ == '__main__':
-    print('Enter your login email:')
-    login_email = input()
-    login_password = getpass()
-
-    chrome_options = Options()
-    chrome_options.add_argument("--start-maximized")
-    chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-infobars")
-
-    chrome_manager = ChromeDriverManager().install()
-    chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
-    login(chrome_driver, login_email, login_password)
-    prepare_to_book(chrome_driver, CLASSES[0].class_hour_str)
-    book(chrome_driver, CLASSES[0].name)
-    chrome_driver.quit()
-
+def book_loop(chrome_driver):
     all_not_in_day = True
     all_not_in_hour = True
     all_not_in_minute = True
@@ -144,7 +135,7 @@ if __name__ == '__main__':
             class_name = cls.name
 
             if now.weekday() not in booking_weekdays:
-                print(f"Not in a week day {now.weekday()+1} {class_name}")
+                print(f"Not in a week day {now.weekday() + 1} {class_name}")
                 continue
 
             all_not_in_day = False
@@ -155,18 +146,16 @@ if __name__ == '__main__':
 
             all_not_in_hour = False
 
-            if not (class_minutes-1 <= now.time().minute < class_minutes+1):
+            if not (class_minutes - 1 <= now.time().minute < class_minutes + 1):
                 print(f"Not in a minutes {now.time()} {class_name}")
                 continue
 
             all_not_in_minute = False
 
-            chrome_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
             login(chrome_driver, login_email, login_password)
+            prepare_to_book(chrome_driver, class_hour_str)
 
-            while datetime.datetime.now().time().minute < class_minutes+1:
-                chrome_driver.refresh()
-                prepare_to_book(chrome_driver, class_hour_str)
+            while datetime.datetime.now().time().minute < class_minutes + 1:
                 success = book(chrome_driver, class_name)
                 if success:
                     time.sleep(5)
@@ -175,13 +164,38 @@ if __name__ == '__main__':
             chrome_driver.quit()
 
         if all_not_in_day:
-            time.sleep(39600) # 11 hours
+            time.sleep(39600)  # 11 hours
         if all_not_in_hour:
-            time.sleep(1740) # 29 minutes
+            time.sleep(1740)  # 29 minutes
         if all_not_in_minute:
             time.sleep(29)
 
         all_not_in_day = True
         all_not_in_hour = True
         all_not_in_minute = True
+
+# /home/vadim/.local/bin/pyinstaller  main.py --onefile
+if __name__ == '__main__':
+    print('Enter your login email:')
+    login_email = input()
+    login_password = getpass()
+
+    chrome_options = Options()
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-infobars")
+
+    chrome_manager = ChromeDriverManager().install()
+    chr_driver = webdriver.Chrome(service=Service(chrome_manager), options=chrome_options)
+    login(chr_driver, login_email, login_password)
+    prepare_to_book(chr_driver, CLASSES[0].class_hour_str)
+    book(chr_driver, CLASSES[0].name)
+    chr_driver.quit()
+
+    book_loop(chr_driver)
+    chr_driver.quit()
+
+
 
