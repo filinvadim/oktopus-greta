@@ -45,29 +45,30 @@ def login(driver, email, password):
         EC.invisibility_of_element_located((By.CLASS_NAME, 'baf-load-mask'))
     )
 
-    deny_all_button = WebDriverWait(driver, 10).until(
+    deny_all_button = WebDriverWait(driver, 30).until(
         EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '.baf-button.cp-cookies-btn._accept[ng-click*="acceptOnlyNecessaryCookies"]'))        )
-    deny_all_button.click()
+            (By.CSS_SELECTOR, '.baf-button.cp-cookies-btn._accept[ng-click*="acceptOnlyNecessaryCookies"]'))
+    )
+    driver.execute_script("arguments[0].click();", deny_all_button)
 
-    login_input = WebDriverWait(driver, 10).until(
+    login_input = WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, 'input[name="Login"]'))
     )
 
     login_input.clear()
     login_input.send_keys(email)
 
-    password_input = WebDriverWait(driver, 10).until(
+    password_input = WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, 'input[name="Password"]'))
     )
     password_input.clear()
     password_input.send_keys(password)
 
-    login_button = WebDriverWait(driver, 10).until(
+    login_button = WebDriverWait(driver, 30).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, '.baf-button.cp-login-btn-login'))
     )
 
-    login_button.click()
+    driver.execute_script("arguments[0].click();", login_button)
 
 def prepare_to_book(driver, class_time):
     path = '//div[contains(@class, "cp-calendar-hour") and contains(text(), "{}")]'.format(class_time)
@@ -102,23 +103,27 @@ def book(driver, name):
             driver.execute_script("arguments[0].click();", element)
 
             button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
-            book_button = WebDriverWait(driver, 30).until(
-                EC.element_to_be_clickable((By.XPATH, button_path))
-            )
-            if book_button.text.lower() == CANCEL_BOOKING:
-                return True
-            if book_button.text.lower() != BOOK_NOW:
-                print(f"Not ready to book {book_button.text} {name} - closing...")
-                close_button = WebDriverWait(driver, 30).until(
-                    EC.element_to_be_clickable((By.XPATH, '//button[contains(@class, "cp-btn-modal-close")]'))
+
+            while True:
+                book_button = WebDriverWait(driver, 30).until(
+                    EC.element_to_be_clickable((By.XPATH, button_path))
                 )
-                driver.execute_script("arguments[0].click();", close_button)
-                return False
+                if book_button.text.lower() == CANCEL_BOOKING:
+                    return True
+                if "loading" in book_button.text.lower():
+                    time.sleep(1/100)
+                    continue
+                if book_button.text.lower() != BOOK_NOW:
+                    print(datetime.datetime.now().time(), f"Not ready to book {book_button.text} {name} - closing...")
+                    close_button = WebDriverWait(driver, 30).until(
+                        EC.element_to_be_clickable((By.XPATH, '//button[contains(@class, "cp-btn-modal-close")]'))
+                    )
+                    driver.execute_script("arguments[0].click();", close_button)
+                    return False
 
-            driver.execute_script("arguments[0].click();", book_button)
-            print(f"Successful click to book {book_button.text} {name}")
-            return True
-
+                driver.execute_script("arguments[0].click();", book_button)
+                print(f"Successful click to book {book_button.text} {name}")
+                return True
         return False
     except Exception as e:
         print("Error", e)
@@ -126,11 +131,10 @@ def book(driver, name):
 
 
 def book_loop(chr_mgr):
-    all_not_in_day = True
-    all_not_in_hour = True
-    all_not_in_minute = True
-
     while True:
+        all_not_in_day = True
+        all_not_in_hour = True
+        all_not_in_minute = True
         now = datetime.datetime.now()
 
         for cls in CLASSES:
@@ -140,6 +144,8 @@ def book_loop(chr_mgr):
             class_hour = cls.class_hour
             class_minutes = cls.class_minutes
             class_name = cls.name
+
+            print("CLASS LOOKUP STARTED", class_name)
 
             if now.weekday() not in booking_weekdays:
                 print(f"Not in a week day {now.weekday() + 1} {class_name}")
@@ -157,23 +163,32 @@ def book_loop(chr_mgr):
             all_not_in_minute = False
 
             chrome_driver = webdriver.Chrome(service=Service(chr_mgr), options=chrome_options)
-            login(chrome_driver, login_email, login_password)
-            prepare_to_book(chrome_driver, class_hour_str)
+            try:
+                login(chrome_driver, login_email, login_password)
+                prepare_to_book(chrome_driver, class_hour_str)
+            except Exception as ex:
+                print("Failed", ex)
+                continue
 
             while True:
                 now = datetime.datetime.now().time()
-                if now.minute < class_minutes + 1:
-                    success = book(chrome_driver, class_name)
-                    if success:
+                try:
+                    if now.minute < class_minutes + 1 and now.hour == class_hour:
+                        success = book(chrome_driver, class_name)
+                        if success:
+                            break
+                    elif now.hour < class_hour + 3:
+                        print(now, "Failed to book the class quickly - will try to book if someone cancelled")
+                        time.sleep(60) # minute
+                        success = book(chrome_driver, class_name)
+                        if success:
+                            break
+                    else:
                         break
-                elif now.hour < class_hour + 3:
-                    print("Failed to book the class quickly - will try to book if someone cancelled")
-                    time.sleep(60) # minute
-                    success = book(chrome_driver, class_name)
-                    if success:
-                        break
-                else:
-                    break
+                except Exception as loop_ex:
+                    print("loop failed", loop_ex)
+                    continue
+
 
             chrome_driver.quit()
 
@@ -184,9 +199,6 @@ def book_loop(chr_mgr):
         if all_not_in_minute:
             time.sleep(29)
 
-        all_not_in_day = True
-        all_not_in_hour = True
-        all_not_in_minute = True
 
 # /home/vadim/.local/bin/pyinstaller  main.py --onefile
 if __name__ == '__main__':
