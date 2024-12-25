@@ -199,7 +199,10 @@ def book_loop(chr_mgr):
                     log(class_name, f"booking cycle exception occurred {loop_ex}")
                     continue
             chrome_driver.quit()
+            print()
 
+        print()
+        print()
         if all_not_in_day:
             time.sleep(39600)  # 11 hours
         if all_not_in_hour:
