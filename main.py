@@ -31,11 +31,19 @@ class GroupClass:
         self.reservation_hour = hour - 2
         self.weekdays = weekdays
 
+MAIN_CLASS = 'DUMBBELL CROSSFIT WORKOUT'
 
 CLASSES = [
-    GroupClass('DUMBBELL CROSSFIT WORKOUT', 20, 30,[1, 3, 6]),
-    GroupClass('HIIT', 14, 30, [4])
+    GroupClass(MAIN_CLASS, 20, 30,[1, 3, 6]),
+    GroupClass('HIIT', 14, 30, [4]),
+    GroupClass('SQUATS', 9, 00, [0,2]),
 ]
+
+def log(name, message):
+    now = datetime.now().time().isoformat('seconds')
+    fixed_name = name.ljust(len(MAIN_CLASS))
+    string = f'{now} {fixed_name}: {message}'
+    print(string)
 
 def login(driver, email, password):
     driver.get(PORTAL_ADDRESS)
@@ -92,42 +100,41 @@ def book(driver, name):
         elements = WebDriverWait(driver, 30).until(
                 EC.presence_of_all_elements_located((By.XPATH, path))
             )
-        print(f"found {len(elements)} classes for {name}")
+        log(name, f"found {len(elements)} classes")
 
         for element in elements:
             driver.execute_script("arguments[0].scrollIntoView(true);", element)
             if not element.is_displayed():
-                print(f"Element is not displayed {element.text} {name}")
+                log(name,f"element is not displayed {element.text}")
                 continue
             driver.execute_script("arguments[0].click();", element)
-            print("element clicked")
-            button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
+            log(name,"class element clicked")
 
+            button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
             book_button = WebDriverWait(driver, 30).until(
                 EC.element_to_be_clickable((By.XPATH, button_path))
             )
-            print("book button found")
+            log(name,"book button found")
 
             if book_button.text.lower() == CANCEL_BOOKING:
                 return True
             if "loading" in book_button.text.lower():
                 time.sleep(1/100)
             if book_button.text.lower() != BOOK_NOW:
-                print(datetime.now().time(), f"Not ready to book {book_button.text} {name}...")
+                log(name,f"status not ready to book: {book_button.text}")
 
             close_button = WebDriverWait(driver, 30).until(
                 EC.element_to_be_clickable((By.XPATH, '//button[contains(@class, "cp-btn-modal-close")]'))
             )
-            print("close button found")
 
             driver.execute_script("arguments[0].click();", book_button)
-            print(f"clicked to book {book_button.text} {name}")
+            log(name,f"clicked to book class: {book_button.text}")
             driver.execute_script("arguments[0].click();", close_button)
-
+            log(name, "close class button clicked")
         return False
 
     except Exception as e:
-        print("Error", e)
+        log(name,f"booking exception occurred {e}")
         return False
 
 
@@ -147,17 +154,17 @@ def book_loop(chr_mgr):
             class_name = cls.name
 
             if datetime.now().weekday() not in booking_weekdays:
-                print(f"Not in a week day {class_name}")
+                log(class_name, "too soon for reservation: weekday")
                 continue
             all_not_in_day = False
 
             if now.time().hour < reservation_hour:
-                print(f"Too soon for reservation hour {now.time().isoformat('seconds')} {class_name}")
+                log(class_name,"too soon for reservation: hour")
                 continue
             all_not_in_hour = False
 
             if now.time().hour == reservation_hour and now.time().minute < class_minutes - 1:
-                print(f"Too soon for reservation minutes {now.time().isoformat('seconds')} {class_name}")
+                log(class_name, "too soon for reservation: minutes")
                 continue
             all_not_in_minute = False
 
@@ -166,34 +173,33 @@ def book_loop(chr_mgr):
                 login(chrome_driver, login_email, login_password)
                 prepare_to_book(chrome_driver, class_hour_str)
             except Exception as ex:
-                print("Failed", ex)
+                log(class_name, f"preparing exception occurred {ex}")
                 continue
 
             while True:
                 now = datetime.now().time()
+                log(class_name, "booking cycle started...")
                 try:
                     if now.minute < class_minutes + 1 and now.hour == reservation_hour:
-                        print("booking...")
-
                         success = book(chrome_driver, class_name)
                         if success:
+                            log(class_name, "booking cycle finished")
                             break
-                    elif now.hour < class_hour + 3:
-                        print(now, "Failed to book the class quickly - will try to book if someone cancelled")
-                        time.sleep(60) # minute
+                    elif now.hour < 23:
+                        log(class_name,"failed to book the class quickly - will try to book if someone cancelled")
+                        time.sleep(10)
                         success = book(chrome_driver, class_name)
                         if success:
                             break
                     else:
-                        print("time sleep")
-                        time.sleep(5)
+                        log(class_name, "booking cycle exited")
+                        time.sleep(10)
                         break
                 except Exception as loop_ex:
-                    print("loop failed", loop_ex)
+                    log(class_name, f"booking cycle exception occurred {loop_ex}")
                     continue
             chrome_driver.quit()
 
-        print(all_not_in_day,all_not_in_hour,all_not_in_minute)
         if all_not_in_day:
             time.sleep(39600)  # 11 hours
         if all_not_in_hour:
