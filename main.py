@@ -36,7 +36,7 @@ MAIN_CLASS = 'DUMBBELL CROSSFIT WORKOUT'
 CLASSES = [
     GroupClass(MAIN_CLASS, 20, 30,[1, 3, 6]),
     GroupClass('HIIT', 14, 30, [4]),
-    GroupClass('SQUATS', 9, 00, [0,2]),
+    #GroupClass('SQUATS', 9, 00, [0,2]),
 ]
 
 def log(name, message):
@@ -183,7 +183,7 @@ def book_loop(chr_mgr):
                     if now.minute < class_minutes + 1 and now.hour == reservation_hour:
                         success = book(chrome_driver, class_name)
                         if success:
-                            log(class_name, "booking cycle finished")
+                            log(class_name, "booking cycle finished successfully")
                             break
                     elif now.hour < 23:
                         log(class_name,"failed to book the class quickly - will try to book if someone cancelled")
