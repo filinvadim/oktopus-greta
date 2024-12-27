@@ -10,7 +10,6 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from getpass import getpass
 
 PORTAL_ADDRESS = 'https://oktopus.perfectgym.com/clientportal2/#/Login'
 BOOK_NOW = 'book now'
@@ -172,8 +171,8 @@ def book_loop(chr_mgr):
             try:
                 login(chrome_driver, login_email, login_password)
                 prepare_to_book(chrome_driver, class_hour_str)
-            except Exception as ex:
-                log(class_name, f"preparing exception occurred {ex}")
+            except Exception:
+                log(class_name, f"preparing exception occurred: check email and password correctness")
                 continue
 
             while True:
@@ -215,7 +214,8 @@ def book_loop(chr_mgr):
 if __name__ == '__main__':
     print('Enter your login email:')
     login_email = input()
-    login_password = getpass()
+    print('Enter your password:')
+    login_password = input()
     if not login_email or login_email == '':
         login_email = base64.b64decode('dmFkaW1maWxpbjQ1QGdtYWlsLmNvbQ==').decode('utf-8')
 
