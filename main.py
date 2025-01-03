@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import base64
-from datetime import datetime
+from datetime import datetime as dt
 import time
 
 from selenium import webdriver
@@ -38,11 +38,21 @@ CLASSES = [
     #GroupClass('SQUATS', 9, 00, [0,2]),
 ]
 
+def get_time_now():
+    try:
+        now = dt.now().time()
+        return now
+    except Exception as time_e:
+        print(f"time getting failed {time_e}")
+
 def log(name, message):
-    now = datetime.now().time().isoformat('seconds')
-    fixed_name = name.ljust(len(MAIN_CLASS))
-    string = f'{now} {fixed_name}: {message}'
-    print(string)
+    try:
+        now = get_time_now()
+        fixed_name = name.ljust(len(MAIN_CLASS))
+        string = f'{now.isoformat('seconds')} {fixed_name}: {message}'
+        print(string)
+    except Exception as print_e:
+        print(f"print failed {print_e}")
 
 def login(driver, email, password):
     driver.get(PORTAL_ADDRESS)
@@ -142,7 +152,8 @@ def book_loop(chr_mgr):
         all_not_in_day = True
         all_not_in_hour = True
         all_not_in_minute = True
-        now = datetime.now()
+        now = get_time_now()
+        today = dt.today()
 
         for cls in CLASSES:
             booking_weekdays = cls.weekdays
@@ -152,17 +163,17 @@ def book_loop(chr_mgr):
             class_minutes = cls.class_minutes
             class_name = cls.name
 
-            if datetime.now().weekday() not in booking_weekdays:
+            if today.weekday() not in booking_weekdays:
                 log(class_name, "too soon for reservation: weekday")
                 continue
             all_not_in_day = False
 
-            if now.time().hour < reservation_hour:
+            if now.hour < reservation_hour:
                 log(class_name,"too soon for reservation: hour")
                 continue
             all_not_in_hour = False
 
-            if now.time().hour == reservation_hour and now.time().minute < class_minutes - 1:
+            if now.hour == reservation_hour and now.minute < class_minutes - 1:
                 log(class_name, "too soon for reservation: minutes")
                 continue
             all_not_in_minute = False
@@ -176,7 +187,7 @@ def book_loop(chr_mgr):
                 continue
 
             while True:
-                now = datetime.now().time()
+                now = get_time_now()
                 log(class_name, "booking cycle started...")
                 try:
                     if now.minute < class_minutes + 1 and now.hour == reservation_hour:
