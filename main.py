@@ -125,7 +125,7 @@ def book(driver, name):
             )
             log(name,"book button found")
 
-            if book_button.text.lower() == CANCEL_BOOKING:
+            if book_button.text.lower() == CANCEL_BOOKING or book_button.text.lower() == 'cancel waiting list':
                 return True
             if "loading" in book_button.text.lower():
                 time.sleep(1/100)
