@@ -13,7 +13,6 @@ from selenium.webdriver.support import expected_conditions as EC
 
 PORTAL_ADDRESS = 'https://oktopus.perfectgym.com/clientportal2/#/Login'
 BOOK_NOW = 'book now'
-CANCEL_BOOKING = 'cancel booking'
 
 class GroupClass:
     name = ''
@@ -125,7 +124,7 @@ def book(driver, name):
             )
             log(name,"book button found")
 
-            if book_button.text.lower() == CANCEL_BOOKING or book_button.text.lower() == 'cancel waiting list':
+            if 'cancel' in book_button.text.lower():
                 return True
             if "loading" in book_button.text.lower():
                 time.sleep(1/100)
