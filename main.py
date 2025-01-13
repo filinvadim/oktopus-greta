@@ -116,7 +116,7 @@ def book(driver, name):
                 log(name,f"element is not displayed {element.text}")
                 continue
             driver.execute_script("arguments[0].click();", element)
-            log(name,"class element clicked")
+            log(name,f"class element clicked: {element.text.replace('\n', ' ')}")
 
             button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
             book_button = WebDriverWait(driver, 30).until(
@@ -125,11 +125,13 @@ def book(driver, name):
             log(name,"book button found")
 
             if 'cancel' in book_button.text.lower():
+                log(name,"already booked")
                 return True
             if "loading" in book_button.text.lower():
+                log(name,"loading...")
                 time.sleep(1/100)
             if book_button.text.lower() != BOOK_NOW:
-                log(name,f"status not ready to book: {book_button.text}")
+                log(name,f"book button status: {book_button.text}")
 
             close_button = WebDriverWait(driver, 30).until(
                 EC.element_to_be_clickable((By.XPATH, '//button[contains(@class, "cp-btn-modal-close")]'))
@@ -147,6 +149,7 @@ def book(driver, name):
 
 
 def book_loop(chr_mgr):
+    log("all","booking loop started...")
     while True:
         all_not_in_day = True
         all_not_in_hour = True
@@ -161,6 +164,7 @@ def book_loop(chr_mgr):
             class_hour = cls.class_hour
             class_minutes = cls.class_minutes
             class_name = cls.name
+            log(class_name,"booking process started...")
 
             if today.weekday() not in booking_weekdays:
                 log(class_name, "too soon for reservation: weekday")
@@ -206,7 +210,7 @@ def book_loop(chr_mgr):
                         break
                 except Exception as loop_ex:
                     log(class_name, f"booking cycle exception occurred {loop_ex}")
-                    continue
+                    break
             chrome_driver.quit()
             print()
 
