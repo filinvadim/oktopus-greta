@@ -110,26 +110,30 @@ def book(driver, name):
             )
         log(name, f"found {len(elements)} classes")
 
-        for element in elements:
+        for i, element in enumerate(elements):
             driver.execute_script("arguments[0].scrollIntoView(true);", element)
             if not element.is_displayed():
-                log(name,f"element is not displayed {element.text}")
+                log(name,f"element is not displayed {element.text}, element num {i}")
                 continue
+
             driver.execute_script("arguments[0].click();", element)
-            log(name,f"class element clicked: {element.text.replace('\n', ' ')}")
+            log(name,f"class element clicked: {element.text.replace('\n', ' ')}, element num {i}")
 
             button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
             book_button = WebDriverWait(driver, 30).until(
                 EC.element_to_be_clickable((By.XPATH, button_path))
             )
-            log(name,"book button found")
+            if not book_button.is_displayed():
+                log(name,f"book button is not displayed {book_button.text}, element num {i}")
+                continue
+            log(name,f"book button found, element num {i}")
 
             if 'cancel' in book_button.text.lower():
-                log(name,"already booked")
+                log(name,f"already booked, element num {i}")
                 return True
             if "loading" in book_button.text.lower():
-                log(name,"loading...")
-                time.sleep(1/100)
+                log(name,f"loading..., element num {i}")
+                time.sleep(1/1000)
             if book_button.text.lower() != BOOK_NOW:
                 log(name,f"book button status: {book_button.text}")
 
@@ -140,12 +144,12 @@ def book(driver, name):
             driver.execute_script("arguments[0].click();", book_button)
             log(name,f"clicked to book class: {book_button.text}")
             driver.execute_script("arguments[0].click();", close_button)
-            log(name, "close class button clicked")
-        return False
+            log(name, f"close class button clicked, element num {i}")
 
     except Exception as e:
         log(name,f"booking exception occurred {e}")
         return False
+    return False
 
 
 def book_loop(chr_mgr):
@@ -191,7 +195,6 @@ def book_loop(chr_mgr):
 
             while True:
                 now = get_time_now()
-                log(class_name, "booking cycle started...")
                 try:
                     if now.minute < class_minutes + 1 and now.hour == reservation_hour:
                         success = book(chrome_driver, class_name)
@@ -212,10 +215,7 @@ def book_loop(chr_mgr):
                     log(class_name, f"booking cycle exception occurred {loop_ex}")
                     break
             chrome_driver.quit()
-            print()
 
-        print()
-        print()
         if all_not_in_day:
             time.sleep(39600)  # 11 hours
         if all_not_in_hour:
