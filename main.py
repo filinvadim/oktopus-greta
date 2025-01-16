@@ -48,7 +48,8 @@ def log(name, message):
     try:
         now = get_time_now()
         fixed_name = name.ljust(len(MAIN_CLASS))
-        string = f'{now.isoformat('seconds')} {fixed_name}: {message}'
+        tm = now.isoformat('seconds')
+        string = f'{tm} {fixed_name}: {message}'
         print(string)
     except Exception as print_e:
         print(f"print failed {print_e}")
