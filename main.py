@@ -118,7 +118,8 @@ def book(driver, name):
                 continue
 
             driver.execute_script("arguments[0].click();", element)
-            log(name,f"class element clicked: {element.text.replace('\n', ' ')}, element num {i}")
+            line = element.text.replace('\n', ' ')
+            log(name,f"class element clicked: {line}, element num {i}")
 
             button_path = "//*[contains(@class, 'class-details-book-btn') and contains(@class, 'cp-calendar-color-btn')]"
             book_button = WebDriverWait(driver, 30).until(
