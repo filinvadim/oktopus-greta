@@ -10,6 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import WebDriverException
 
 PORTAL_ADDRESS = 'https://oktopus.perfectgym.com/clientportal2/#/Login'
 BOOK_NOW = 'book now'
@@ -34,7 +35,7 @@ MAIN_CLASS = 'DUMBBELL CROSSFIT WORKOUT'
 CLASSES = [
     GroupClass(MAIN_CLASS, 20, 30,[1, 3, 6]),
     GroupClass('HIIT', 14, 30, [4]),
-    #GroupClass('SQUATS', 9, 00, [0,2]),
+    # GroupClass('SQUATS', 8, 45, [3]),
 ]
 
 def get_time_now():
@@ -100,7 +101,7 @@ def prepare_to_book(driver, class_time):
     driver.execute_script("arguments[0].scrollIntoView(true);", later_classes)
 
     if not later_classes.is_displayed():
-        raise Exception("later classes aren't visible")
+        raise WebDriverException("later classes aren't visible")
 
 
 def book(driver, name):
@@ -112,11 +113,8 @@ def book(driver, name):
         log(name, f"found {len(elements)} classes")
 
         for i, element in enumerate(elements):
-            driver.execute_script("arguments[0].scrollIntoView(true);", element)
-            if not element.is_displayed():
-                log(name,f"element is not displayed {element.text}, element num {i}")
-                continue
 
+            driver.execute_script("arguments[0].scrollIntoView(true);", element)
             driver.execute_script("arguments[0].click();", element)
             line = element.text.replace('\n', ' ')
             log(name,f"class element clicked: {line}, element num {i}")
@@ -125,9 +123,7 @@ def book(driver, name):
             book_button = WebDriverWait(driver, 30).until(
                 EC.element_to_be_clickable((By.XPATH, button_path))
             )
-            if not book_button.is_displayed():
-                log(name,f"book button is not displayed {book_button.text}, element num {i}")
-                continue
+
             log(name,f"book button found, element num {i}")
 
             if 'cancel' in book_button.text.lower():
@@ -147,8 +143,8 @@ def book(driver, name):
             log(name,f"clicked to book class: {book_button.text}")
             driver.execute_script("arguments[0].click();", close_button)
             log(name, f"close class button clicked, element num {i}")
-
-    except Exception as e:
+            print()
+    except WebDriverException as e:
         log(name,f"booking exception occurred {e}")
         return False
     return False
@@ -191,7 +187,7 @@ def book_loop(chr_mgr):
             try:
                 login(chrome_driver, login_email, login_password)
                 prepare_to_book(chrome_driver, class_hour_str)
-            except Exception:
+            except WebDriverException:
                 log(class_name, f"preparing exception occurred: check email and password correctness")
                 continue
 
@@ -213,7 +209,7 @@ def book_loop(chr_mgr):
                         log(class_name, "booking cycle exited")
                         time.sleep(10)
                         break
-                except Exception as loop_ex:
+                except WebDriverException as loop_ex:
                     log(class_name, f"booking cycle exception occurred {loop_ex}")
                     break
             chrome_driver.quit()
