@@ -10,11 +10,10 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from getpass import getpass
+
 
 PORTAL_ADDRESS = 'https://oktopus.perfectgym.com/clientportal2/#/Login'
 BOOK_NOW = 'book now'
-CANCEL_BOOKING = 'cancel booking'
 
 class GroupClass:
     name = ''
@@ -108,7 +107,7 @@ def book(driver, name):
             )
             print("book button found")
 
-            if book_button.text.lower() == CANCEL_BOOKING:
+            if "cancel" in book_button.text.lower():
                 return True
             if "loading" in book_button.text.lower():
                 time.sleep(1/100)
@@ -206,7 +205,7 @@ def book_loop(chr_mgr):
 if __name__ == '__main__':
     print('Enter your login email:')
     login_email = input()
-    login_password = getpass()
+    login_password = input()
     if not login_email or login_email == '':
         login_email = base64.b64decode('dmFkaW1maWxpbjQ1QGdtYWlsLmNvbQ==').decode('utf-8')
 
